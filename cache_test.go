@@ -1,9 +1,16 @@
 package main
 
-import "testing"
+import (
+	"os"
+	"testing"
+)
 
 func TestSyncCacheBasic(t *testing.T) {
-	cache := NewSyncCache[string, string]()
+	addr := os.Getenv("REDIS_ADDR")
+	if addr == "" {
+		t.Skip("REDIS_ADDR not set; skipping")
+	}
+	cache := NewSyncCache[string, string](addr)
 	defer cache.Close()
 
 	cache.Set("foo", "bar")

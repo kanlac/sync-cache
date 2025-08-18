@@ -2,13 +2,18 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/kanlac/sync-cache/engine"
 )
 
 func main() {
-	cache := engine.NewRistrettoCacheEngine[string, string]()
+	addr := os.Getenv("REDIS_ADDR")
+	if addr == "" {
+		panic("REDIS_ADDR is required")
+	}
+	cache := engine.NewRistrettoCacheEngine[string, string](addr)
 	defer cache.Close()
 
 	ok := cache.Set("user:42", "Alice")

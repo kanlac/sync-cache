@@ -1,12 +1,17 @@
 package engine
 
 import (
+	"os"
 	"testing"
 	"time"
 )
 
 func TestRistrettoEngineBasic(t *testing.T) {
-	e := NewRistrettoCacheEngine[string, string]()
+	addr := os.Getenv("REDIS_ADDR")
+	if addr == "" {
+		t.Skip("REDIS_ADDR not set; skipping")
+	}
+	e := NewRistrettoCacheEngine[string, string](addr)
 	defer e.Close()
 
 	ok := e.Set("foo", "bar")

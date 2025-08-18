@@ -2,7 +2,7 @@
 
 English | [中文](README_zh.md)
 
-An in-memory store/cache for Go that provides strong consistency.
+An in-memory L1 cache for Go that targets eventual consistency across instances via asynchronous invalidation with Redis Streams.
 
 ## FAQ
 
@@ -16,4 +16,4 @@ A common architectural gap exists for modern microservices. When a service is de
 
 ### How does this project attempt to solve this problem?
 
-This project, `sync-cache`, proposes a two-tier (L1/L2) architecture. The L1 cache is a high-performance, in-process store (like Ristretto) in each service instance, ensuring ultra-fast reads. The L2 is a shared invalidation bus (like Redis Streams) that does not store business data; its sole purpose is to broadcast invalidation messages. When data is updated on one instance, it notifies the bus, and all other instances receive a message to evict the item from their local L1 cache. This design provides low latency while achieving eventual consistency.
+This project, `sync-cache`, proposes a two-tier (L1/L2) architecture. The L1 cache is a high-performance, in-process store (like Ristretto) in each service instance, ensuring ultra-fast reads. The L2 is a shared invalidation bus (like Redis Streams) that does not store business data; its sole purpose is to broadcast invalidation messages. When data is updated on one instance, it notifies the bus, and all other instances receive a message to evict the item from their local L1 cache. 

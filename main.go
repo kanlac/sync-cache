@@ -9,8 +9,8 @@ type syncCacheImpl[K cache.Key, V any] struct {
 	e *engine.SimpleEngine[K, V]
 }
 
-func NewSyncCache[K cache.Key, V any]() cache.SyncCache[K, V] {
-	return &syncCacheImpl[K, V]{e: engine.NewSimpleEngine[K, V]()}
+func NewSyncCache[K cache.Key, V any](redisAddr string) cache.SyncCache[K, V] {
+	return &syncCacheImpl[K, V]{e: engine.NewSimpleEngine[K, V](redisAddr)}
 }
 
 func (s *syncCacheImpl[K, V]) Get(key K) (V, bool) {
