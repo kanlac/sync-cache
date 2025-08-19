@@ -11,7 +11,10 @@ func TestRistrettoEngineBasic(t *testing.T) {
 	if addr == "" {
 		t.Skip("REDIS_ADDR not set; skipping")
 	}
-	e := NewRistrettoCacheEngine[string, string](addr)
+	e, err := NewRistrettoCacheEngine[string, string](addr, "test-instance")
+	if err != nil {
+		t.Fatalf("Failed to create cache engine: %v", err)
+	}
 	defer e.Close()
 
 	ok := e.Set("foo", "bar")

@@ -2,11 +2,8 @@ package engine
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/hex"
 	"fmt"
 	"log"
-	"os"
 	"strings"
 	"sync"
 	"time"
@@ -31,31 +28,29 @@ type redisPublisher struct {
 	onInvalidate func(string)
 }
 
-func newRedisPublisher(redisAddr string) *redisPublisher {
+// newRedisPublisher creates a new Redis publisher with a stable instance name.
+// instanceName should be a stable identifier (e.g., Pod name) to ensure consistent
+// consumer group membership for tracking message consumption progress.
+func newRedisPublisher(redisAddr, instanceName string) (*redisPublisher, error) {
 	if redisAddr == "" {
-		panic("redis address is required and cannot be empty")
+		return nil, fmt.Errorf("redis address is required and cannot be empty")
+	}
+	if instanceName == "" {
+		return nil, fmt.Errorf("instance name is required and cannot be empty")
 	}
 	client := redis.NewClient(&redis.Options{Addr: redisAddr})
 	ctx, cancel := context.WithCancel(context.Background())
 	p := &redisPublisher{
 		client:   client,
 		stream:   defaultStreamName,
-		sourceID: generateSourceID(),
+		sourceID: instanceName, // Use instanceName instead of random ID
 		msgs:     make(chan string, 1024),
 		ctx:      ctx,
 		cancel:   cancel,
 	}
 	p.wg.Add(1)
 	go p.loop()
-	return p
-}
-
-func generateSourceID() string {
-	host, _ := os.Hostname()
-	pid := os.Getpid()
-	b := make([]byte, 6)
-	_, _ = rand.Read(b)
-	return fmt.Sprintf("%s-%d-%s", host, pid, hex.EncodeToString(b))
+	return p, nil
 }
 
 func (p *redisPublisher) publishInvalidation(key string) {

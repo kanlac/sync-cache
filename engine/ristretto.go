@@ -13,22 +13,32 @@ type RistrettoEngine[K cache.Key, V any] struct {
 	publisher *redisPublisher
 }
 
-func NewRistrettoCacheEngine[K cache.Key, V any](redisAddr string) *RistrettoEngine[K, V] {
+// NewRistrettoCacheEngine creates a new Ristretto-based cache engine with Redis invalidation.
+// instanceName is required and should be a stable identifier for this instance (e.g., Pod name).
+// This ensures consistent consumer group membership for tracking invalidation message consumption progress.
+func NewRistrettoCacheEngine[K cache.Key, V any](redisAddr, instanceName string) (*RistrettoEngine[K, V], error) {
+	if instanceName == "" {
+		return nil, fmt.Errorf("instanceName is required and cannot be empty")
+	}
 	cache, err := ristretto.NewCache(&ristretto.Config[K, V]{
 		NumCounters: 1e7,
 		MaxCost:     1 << 30,
 		BufferItems: 64,
 	})
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf("failed to create ristretto cache: %w", err)
 	}
-	e := &RistrettoEngine[K, V]{store: cache, publisher: newRedisPublisher(redisAddr)}
+	publisher, err := newRedisPublisher(redisAddr, instanceName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create redis publisher: %w", err)
+	}
+	e := &RistrettoEngine[K, V]{store: cache, publisher: publisher}
 	e.publisher.startSubscriber(func(keyStr string) {
 		if k, ok := parseKey[K](keyStr); ok {
 			e.store.Del(k)
 		}
 	})
-	return e
+	return e, nil
 }
 
 // Get retrieves a value from the Ristretto cache

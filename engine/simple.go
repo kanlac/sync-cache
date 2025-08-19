@@ -11,14 +11,24 @@ type SimpleEngine[K comparable, V any] struct {
 	publisher *redisPublisher
 }
 
-func NewSimpleEngine[K comparable, V any](redisAddr string) *SimpleEngine[K, V] {
-	e := &SimpleEngine[K, V]{store: make(map[K]V), publisher: newRedisPublisher(redisAddr)}
+// NewSimpleEngine creates a new simple map-based cache engine with Redis invalidation.
+// instanceName is required and should be a stable identifier for this instance (e.g., Pod name).
+// This ensures consistent consumer group membership for tracking invalidation message consumption progress.
+func NewSimpleEngine[K comparable, V any](redisAddr, instanceName string) (*SimpleEngine[K, V], error) {
+	if instanceName == "" {
+		return nil, fmt.Errorf("instanceName is required and cannot be empty")
+	}
+	publisher, err := newRedisPublisher(redisAddr, instanceName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create redis publisher: %w", err)
+	}
+	e := &SimpleEngine[K, V]{store: make(map[K]V), publisher: publisher}
 	e.publisher.startSubscriber(func(keyStr string) {
 		if k, ok := parseKeySimple[K](keyStr); ok {
 			delete(e.store, k)
 		}
 	})
-	return e
+	return e, nil
 }
 
 func (m *SimpleEngine[K, V]) Get(key K) (V, bool) {

@@ -9,8 +9,14 @@ type syncCacheImpl[K cache.Key, V any] struct {
 	e *engine.SimpleEngine[K, V]
 }
 
-func NewSyncCache[K cache.Key, V any](redisAddr string) cache.SyncCache[K, V] {
-	return &syncCacheImpl[K, V]{e: engine.NewSimpleEngine[K, V](redisAddr)}
+// NewSyncCache creates a new sync cache with the given Redis address and instance name.
+// instanceName should be a stable identifier for this instance (e.g., Pod name).
+func NewSyncCache[K cache.Key, V any](redisAddr, instanceName string) (cache.SyncCache[K, V], error) {
+	e, err := engine.NewSimpleEngine[K, V](redisAddr, instanceName)
+	if err != nil {
+		return nil, err
+	}
+	return &syncCacheImpl[K, V]{e: e}, nil
 }
 
 func (s *syncCacheImpl[K, V]) Get(key K) (V, bool) {

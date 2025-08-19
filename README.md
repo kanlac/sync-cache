@@ -16,4 +16,8 @@ A common architectural gap exists for modern microservices. When a service is de
 
 ### How does this project attempt to solve this problem?
 
-This project, `sync-cache`, proposes a two-tier (L1/L2) architecture. The L1 cache is a high-performance, in-process store (like Ristretto) in each service instance, ensuring ultra-fast reads. The L2 is a shared invalidation bus (like Redis Streams) that does not store business data; its sole purpose is to broadcast invalidation messages. When data is updated on one instance, it notifies the bus, and all other instances receive a message to evict the item from their local L1 cache. 
+This project, `sync-cache`, proposes a two-tier (L1/L2) architecture. The L1 cache is a high-performance, in-process store (like Ristretto) in each service instance, ensuring ultra-fast reads. The L2 is a shared invalidation bus (like Redis Streams) that does not store business data; its sole purpose is to broadcast invalidation messages. When data is updated on one instance, it notifies the bus, and all other instances receive a message to evict the item from their local L1 cache.
+
+### Why do instances need stable identity?
+
+Each cache instance requires a stable, unique identifier to maintain consistent consumer group membership in Redis Streams, which tracks message consumption progress across restarts. Without stable identity, restarted instances would create new consumer groups, potentially missing invalidation messages or losing track of consumption state. 

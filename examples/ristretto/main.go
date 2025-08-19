@@ -13,7 +13,10 @@ func main() {
 	if addr == "" {
 		panic("REDIS_ADDR is required")
 	}
-	cache := engine.NewRistrettoCacheEngine[string, string](addr)
+	cache, err := engine.NewRistrettoCacheEngine[string, string](addr, "example-instance")
+	if err != nil {
+		panic(fmt.Sprintf("Failed to create cache engine: %v", err))
+	}
 	defer cache.Close()
 
 	ok := cache.Set("user:42", "Alice")

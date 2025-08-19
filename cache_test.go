@@ -10,7 +10,10 @@ func TestSyncCacheBasic(t *testing.T) {
 	if addr == "" {
 		t.Skip("REDIS_ADDR not set; skipping")
 	}
-	cache := NewSyncCache[string, string](addr)
+	cache, err := NewSyncCache[string, string](addr, "test-cache-instance")
+	if err != nil {
+		t.Fatalf("Failed to create sync cache: %v", err)
+	}
 	defer cache.Close()
 
 	cache.Set("foo", "bar")
