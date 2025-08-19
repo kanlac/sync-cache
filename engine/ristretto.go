@@ -2,6 +2,7 @@ package engine
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/dgraph-io/ristretto/v2"
 	"github.com/kanlac/sync-cache/cache"
@@ -21,7 +22,13 @@ func NewRistrettoCacheEngine[K cache.Key, V any](redisAddr string) *RistrettoEng
 	if err != nil {
 		panic(err)
 	}
-	return &RistrettoEngine[K, V]{store: cache, publisher: newRedisPublisher(redisAddr)}
+	e := &RistrettoEngine[K, V]{store: cache, publisher: newRedisPublisher(redisAddr)}
+	e.publisher.startSubscriber(func(keyStr string) {
+		if k, ok := parseKey[K](keyStr); ok {
+			e.store.Del(k)
+		}
+	})
+	return e
 }
 
 // Get retrieves a value from the Ristretto cache
@@ -54,4 +61,44 @@ func (r *RistrettoEngine[K, V]) Close() error {
 		return r.publisher.Close()
 	}
 	return nil
+}
+
+func parseKey[K cache.Key](s string) (K, bool) {
+	var zero K
+	switch any(zero).(type) {
+	case string:
+		return any(s).(K), true
+	case int:
+		v, err := strconv.Atoi(s)
+		if err != nil {
+			return zero, false
+		}
+		return any(v).(K), true
+	case int32:
+		v64, err := strconv.ParseInt(s, 10, 32)
+		if err != nil {
+			return zero, false
+		}
+		return any(int32(v64)).(K), true
+	case int64:
+		v, err := strconv.ParseInt(s, 10, 64)
+		if err != nil {
+			return zero, false
+		}
+		return any(v).(K), true
+	case uint32:
+		v64, err := strconv.ParseUint(s, 10, 32)
+		if err != nil {
+			return zero, false
+		}
+		return any(uint32(v64)).(K), true
+	case uint64:
+		v, err := strconv.ParseUint(s, 10, 64)
+		if err != nil {
+			return zero, false
+		}
+		return any(v).(K), true
+	default:
+		return zero, false
+	}
 }
