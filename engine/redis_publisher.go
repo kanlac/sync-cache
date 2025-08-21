@@ -116,10 +116,13 @@ func (p *redisPublisher) subLoop() {
 		default:
 		}
 
+		// Use "0-0" instead of ">" to process pending messages first.
+		// Even though local cache is cleared on restart, we must still ACK these messages
+		// to remove them from Redis PEL and avoid memory accumulation.
 		streams, err := p.client.XReadGroup(p.ctx, &redis.XReadGroupArgs{
 			Group:    p.group,
 			Consumer: p.consumer,
-			Streams:  []string{p.stream, ">"},
+			Streams:  []string{p.stream, "0-0"},
 			Count:    128,
 			Block:    5 * time.Second,
 		}).Result()
