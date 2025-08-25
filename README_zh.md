@@ -4,6 +4,42 @@
 
 一个以最终一致性为目标的分布式 L1 本地缓存，通过 Redis Streams 异步广播失效消息来进行跨实例同步。
 
+## 测试
+
+### 环境搭建
+
+```bash
+cd tests/
+docker compose up -d
+
+# 验证服务健康状态
+curl http://localhost:8080/health  # instance-a
+curl http://localhost:8081/health  # instance-b
+
+# 运行集成测试
+go test ./integration/
+```
+
+### 手动测试示例
+
+```bash
+# 在 instance-a 中设置值
+curl -X POST http://localhost:8080/set \
+  -H "Content-Type: application/json" \
+  -d '{"key":"user:123","value":"John Doe"}'
+
+# 从 instance-b 中获取值
+curl "http://localhost:8081/get?key=user:123"
+
+# 在 instance-a 中更新值
+curl -X POST http://localhost:8080/set \
+  -H "Content-Type: application/json" \
+  -d '{"key":"user:123","value":"Alice Doe"}'
+
+# 从 instance-b 中获取同步后的值
+curl "http://localhost:8081/get?key=user:123"
+```
+
 ## FAQ
 
 ### 有哪些典型的缓存业务场景？分别适用于什么现有方案？

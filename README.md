@@ -4,6 +4,42 @@ English | [中文](README_zh.md)
 
 An in-memory L1 cache for Go that targets eventual consistency across instances via asynchronous invalidation with Redis Streams.
 
+## Test
+
+### Setup
+
+```bash
+cd tests/
+docker compose up -d
+
+# Verify services are healthy
+curl http://localhost:8080/health  # instance-a
+curl http://localhost:8081/health  # instance-b
+
+# Run integration tests
+go test ./integration/
+```
+
+### Manual Testing Example
+
+```bash
+# Set a value in instance-a
+curl -X POST http://localhost:8080/set \
+  -H "Content-Type: application/json" \
+  -d '{"key":"user:123","value":"John Doe"}'
+
+# Get the value from instance-b
+curl "http://localhost:8081/get?key=user:123"
+
+# Update in instance-a
+curl -X POST http://localhost:8080/set \
+  -H "Content-Type: application/json" \
+  -d '{"key":"user:123","value":"Alice Doe"}'
+
+# Get synchronized value from instance-b
+curl "http://localhost:8081/get?key=user:123"
+```
+
 ## FAQ
 
 ### What are typical caching scenarios and their existing solutions?
