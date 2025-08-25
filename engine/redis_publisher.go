@@ -43,7 +43,7 @@ func newRedisPublisher(client *redis.Client, instanceName string) (*redisPublish
 	p := &redisPublisher{
 		client:   client,
 		stream:   defaultStreamName,
-		sourceID: instanceName, // Use instanceName instead of random ID
+		sourceID: instanceName,
 		msgs:     make(chan string, 1024),
 		ctx:      ctx,
 		cancel:   cancel,
@@ -116,13 +116,10 @@ func (p *redisPublisher) subLoop() {
 		default:
 		}
 
-		// Use "0-0" instead of ">" to process pending messages first.
-		// Even though local cache is cleared on restart, we must still ACK these messages
-		// to remove them from Redis PEL and avoid memory accumulation.
 		streams, err := p.client.XReadGroup(p.ctx, &redis.XReadGroupArgs{
 			Group:    p.group,
 			Consumer: p.consumer,
-			Streams:  []string{p.stream, "0-0"},
+			Streams:  []string{p.stream, ">"},
 			Count:    128,
 			Block:    5 * time.Second,
 		}).Result()
