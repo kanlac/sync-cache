@@ -19,10 +19,7 @@ func main() {
 	}
 	defer cache.Close()
 
-	ok := cache.Set("user:42", "Alice")
-	if !ok {
-		fmt.Println("Set returned false (possibly dropped)")
-	}
+	cache.Set("user:42", "Alice")
 
 	time.Sleep(10 * time.Millisecond)
 

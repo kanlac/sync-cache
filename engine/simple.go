@@ -46,10 +46,9 @@ func (m *SimpleEngine[K, V]) Get(key K) (V, bool) {
 	return v, ok
 }
 
-func (m *SimpleEngine[K, V]) Set(key K, value V) bool {
+func (m *SimpleEngine[K, V]) Set(key K, value V) {
 	m.store[key] = value
 	m.publisher.publishInvalidation(fmt.Sprint(key))
-	return true
 }
 
 func (m *SimpleEngine[K, V]) Delete(key K) {

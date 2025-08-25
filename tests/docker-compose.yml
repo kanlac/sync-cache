@@ -1,0 +1,54 @@
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    volumes:
+      - redis_data:/data
+
+  instance-a:
+    build:
+      context: ../
+      dockerfile: tests/Dockerfile
+    environment:
+      - REDIS_ADDR=redis:6379
+      - INSTANCE_NAME=instance-a
+      - HTTP_PORT=8080
+    ports:
+      - "8080:8080"
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  instance-b:
+    build:
+      context: ../
+      dockerfile: tests/Dockerfile
+    environment:
+      - REDIS_ADDR=redis:6379
+      - INSTANCE_NAME=instance-b
+      - HTTP_PORT=8080
+    ports:
+      - "8081:8080"
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  redis_data:

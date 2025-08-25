@@ -91,9 +91,9 @@ func (r *RistrettoEngine[K, V]) Get(key K) (V, bool) {
 }
 
 // Set sets a value in L1 Ristretto cache and asynchronously writes to L2 Redis cache
-func (r *RistrettoEngine[K, V]) Set(key K, value V) bool {
+func (r *RistrettoEngine[K, V]) Set(key K, value V) {
 	// Set in L1 cache immediately
-	ok := r.store.Set(key, value, 1)
+	r.store.Set(key, value, 1)
 	
 	// Asynchronously set in L2 Redis cache
 	go func() {
@@ -110,7 +110,6 @@ func (r *RistrettoEngine[K, V]) Set(key K, value V) bool {
 	
 	// Publish invalidation to other instances
 	r.publisher.publishInvalidation(fmt.Sprint(key))
-	return ok
 }
 
 // Delete removes a value from L1 Ristretto cache and asynchronously deletes from L2 Redis cache

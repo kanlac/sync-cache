@@ -17,10 +17,7 @@ func TestRistrettoEngineBasic(t *testing.T) {
 	}
 	defer e.Close()
 
-	ok := e.Set("foo", "bar")
-	if !ok {
-		t.Errorf("Set returned false, expected true")
-	}
+	e.Set("foo", "bar")
 	time.Sleep(10 * time.Millisecond)
 	v, found := e.Get("foo")
 	if !found || v != "bar" {
