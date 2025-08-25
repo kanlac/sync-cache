@@ -3,12 +3,15 @@ package engine
 import (
 	"fmt"
 	"strconv"
+
+	"github.com/redis/go-redis/v9"
 )
 
 // SimpleEngine is a simple implementation based on map
 type SimpleEngine[K comparable, V any] struct {
-	store     map[K]V
-	publisher *redisPublisher
+	store       map[K]V
+	publisher   *redisPublisher
+	redisClient *redis.Client
 }
 
 // NewSimpleEngine creates a new simple map-based cache engine with Redis invalidation.
@@ -18,11 +21,18 @@ func NewSimpleEngine[K comparable, V any](redisAddr, instanceName string) (*Simp
 	if instanceName == "" {
 		return nil, fmt.Errorf("instanceName is required and cannot be empty")
 	}
-	publisher, err := newRedisPublisher(redisAddr, instanceName)
+	// Create Redis client for publisher
+	redisClient := redis.NewClient(&redis.Options{Addr: redisAddr})
+	
+	publisher, err := newRedisPublisher(redisClient, instanceName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create redis publisher: %w", err)
 	}
-	e := &SimpleEngine[K, V]{store: make(map[K]V), publisher: publisher}
+	e := &SimpleEngine[K, V]{
+		store:       make(map[K]V),
+		publisher:   publisher,
+		redisClient: redisClient,
+	}
 	e.publisher.startSubscriber(func(keyStr string) {
 		if k, ok := parseKeySimple[K](keyStr); ok {
 			delete(e.store, k)
@@ -48,10 +58,18 @@ func (m *SimpleEngine[K, V]) Delete(key K) {
 }
 
 func (m *SimpleEngine[K, V]) Close() error {
+	var err error
+	// Close publisher first (stops goroutines)
 	if m.publisher != nil {
-		return m.publisher.Close()
+		err = m.publisher.Close()
 	}
-	return nil
+	// Then close the Redis client (managed by engine)
+	if m.redisClient != nil {
+		if closeErr := m.redisClient.Close(); closeErr != nil && err == nil {
+			err = closeErr
+		}
+	}
+	return err
 }
 
 func parseKeySimple[K comparable](s string) (K, bool) {

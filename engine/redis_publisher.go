@@ -28,17 +28,17 @@ type redisPublisher struct {
 	onInvalidate func(string)
 }
 
-// newRedisPublisher creates a new Redis publisher with a stable instance name.
+// newRedisPublisher creates a new Redis publisher with an external Redis client.
+// The client lifecycle is managed by the caller.
 // instanceName should be a stable identifier (e.g., Pod name) to ensure consistent
 // consumer group membership for tracking message consumption progress.
-func newRedisPublisher(redisAddr, instanceName string) (*redisPublisher, error) {
-	if redisAddr == "" {
-		return nil, fmt.Errorf("redis address is required and cannot be empty")
+func newRedisPublisher(client *redis.Client, instanceName string) (*redisPublisher, error) {
+	if client == nil {
+		return nil, fmt.Errorf("redis client is required and cannot be nil")
 	}
 	if instanceName == "" {
 		return nil, fmt.Errorf("instance name is required and cannot be empty")
 	}
-	client := redis.NewClient(&redis.Options{Addr: redisAddr})
 	ctx, cancel := context.WithCancel(context.Background())
 	p := &redisPublisher{
 		client:   client,
@@ -177,5 +177,6 @@ func (p *redisPublisher) Close() error {
 	}
 	close(p.msgs)
 	p.wg.Wait()
-	return p.client.Close()
+	// Client lifecycle is managed by the caller, so we don't close it here
+	return nil
 }
